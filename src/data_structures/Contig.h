@@ -24,6 +24,12 @@ class Contig{
 	unsigned int **spanCoverage;
 	unsigned int **readCoverage;
 
+	unsigned long int *totalReadLength;
+	unsigned long int *totalSpanLength;
+
+	float *readCov;
+	float *spanCov;
+
 	void updateReadCov(unsigned int start, unsigned int end, unsigned int library);
 	void updateSpanCov(unsigned int start, unsigned int end, unsigned int library);
 
@@ -35,8 +41,14 @@ public:
 
 	void setLibraryLimits(unsigned int minInsert, unsigned int maxInsert, unsigned int library); // set min and max of liobrary library
 
-	void updateContig(bam1_t* b, unsigned int library); // given an alignment and its library it updates the contig situation
+	void updateContig(const bam1_t* b, unsigned int library); // given an alignment and its library it updates the contig situation
 
+	void computeContigStats();
+
+	void computeCoverageDrops();
+
+	void print();
+	void printStats();
 
 };
 

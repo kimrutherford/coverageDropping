@@ -68,11 +68,24 @@ samfile_t * open_alignment_file(std::string path)
 
 static int fetch_func(const bam1_t *b, void *data)
 {
+
+
+	const bam1_core_t* core =  &b->core;
+	uint32_t* cigar = bam1_cigar(b);
+	int32_t alignmentLength = bam_cigar2qlen(core,cigar);
+//	cout << core->tid << " " << core->pos <<  " " << alignmentLength << " a\n";
+
 	vector<bam1_t> *buf = (vector<bam1_t>*)data;
-//    bam_plbuf_t *buf = (bam_plbuf_t*)data;
-//	buf->push_back(b);
-//	bam_plbuf_push(b, buf);
 	buf->push_back(*b);
+
+	uint32_t size = buf->size();
+	const bam1_t* bAF = &buf->at(0);
+	const bam1_core_t* coreAF =  &bAF->core;
+	uint32_t* cigarAF = bam1_cigar(bAF);
+	int32_t alignmentLengthAF = bam_cigar2qlen(coreAF,cigarAF);
+	//	cout << coreAF->tid << " " << coreAF->pos <<  " " << alignmentLengthAF << " b\n";
+
+
     return 0;
 }
 
@@ -209,12 +222,16 @@ int main(int argc, char *argv[]) {
 	int end = 0x7fffffff;
 	int ref;
 	unsigned int contigSize;
+	//const bam1_t *b = bam_init1();
 
+	//computeLibraryStats(librariesBAM.at(0) , minInserts.at(0), maxInserts.at(0), estimatedGenomeSize);
 	for(unsigned int i=0; i< numSequences ; i++) {
 			beg = 0;
 			end = contigSize = head->target_len[i];
-
 			Contig *currentContig =  new Contig(contigSize, numLibraries);
+			for(unsigned int lib = 0; lib < numLibraries; lib++) {
+				currentContig->setLibraryLimits(minInserts.at(lib), maxInserts.at(lib), lib);
+			}
 
 			bam_parse_region(librariesBAM.at(0)->header, head->target_name[i] , &ref, &beg, &end);
 			if (ref < 0) {
@@ -222,19 +239,29 @@ int main(int argc, char *argv[]) {
 				return 1;
 			}
 
-			cout << head->target_name[i]  << " " << ref << " " << beg << " " << end << "\n";
 
 			for(unsigned int lib = 0; lib < numLibraries; lib++) {
 				bam_fetch(librariesBAM.at(lib)->x.bam, librariesBAMindex.at(lib) , ref, beg, end, &buffer, fetch_func);
 				unsigned int sizeBuffer = buffer.size();
-				cout << "\tnumber of alignments on contig " <<  head->target_name[i] <<  " with library "
-						<< lib << " is " << sizeBuffer << "\n";
-				//for(unsigned int j = 0; j < sizeBuffer; j++ ) {
-				//	const bam1_core_t core = buffer.at(j).core;
-				//	cout << "Aligned on  " << head->target_name[core.tid] << "\n";
-				//}
+//				cout << "\tnumber of alignments on contig " <<  head->target_name[i] <<  " with library " << lib << " is " << sizeBuffer << "\n";
+				for(unsigned int j = 0; j < sizeBuffer; j++ ) {
+					const bam1_t* b = &buffer.at(j);
+				//	const bam1_core_t* core =  &b->core;
+				//	int32_t alignmentLength = core->l_qseq; // bam_cigar2qlen(core,cigar);
+				//	cout << core->tid << " " << head->target_name[core->tid] << " " << core->pos <<  " " << alignmentLength << "\n";
+					currentContig->updateContig(b, lib);
+				}
 				buffer.clear();
 			}
+
+
+			currentContig->computeContigStats();
+			currentContig->printStats();
+
+			currentContig->computeCoverageDrops();
+
+			//currentContig->print();
+			delete currentContig;
 		}
 
 
@@ -258,7 +285,6 @@ void computeLibraryStats(samfile_t *fp, unsigned int minInsert, unsigned int max
 
 	uint64_t contigSize = 0;
 	uint64_t insertsLength = 0; // total inserts length
-	float insertMean;
 	float insertStd;
 
 // mated reads (not necessary correctly mated)
@@ -313,7 +339,7 @@ void computeLibraryStats(samfile_t *fp, unsigned int minInsert, unsigned int max
 	    		  contigSize = head->target_len[core->tid];
 	    		  contigs++;
 	    		  if (contigSize < 1) {//We can't have such sizes! this can't be right
-	    			  fprintf(stderr,"%s has size %d, which can't be right!\nCheck bam header!",head->target_name[core->tid],contigSize);
+	    			  fprintf(stderr,"%s has size %d, which can't be right!\nCheck bam header!",head->target_name[core->tid], contigSize);
 	    		  }
 	    		  currentTid = core->tid;
 	    	  }
@@ -472,6 +498,13 @@ void computeLibraryStats(samfile_t *fp, unsigned int minInsert, unsigned int max
     uint32_t total = correctlyMatedReads + wronglyOrientedReads + wronglyDistanceReads + matedDifferentContig + singletonReads;
     cout << "\ttotal " << total << "\n";
     cout << "\tCoverage statistics\n";
+
+    C_A = readsLength/(float)genomeLength;
+     S_A = insertsLength/(float)genomeLength;
+    C_M = correctlyMatedReadsLength/(float)genomeLength;
+    C_W = (wronglyDistanceReadsLength + wronglyOrientedReadsLength)/(float)genomeLength;
+     C_S = (singletonReadsLength)/(float)genomeLength;
+    C_C = matedDifferentContigLength/(float)genomeLength;
 
     Qk = sqrt(Qk/counterK);
     insertStd = Qk;
