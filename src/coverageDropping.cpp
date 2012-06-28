@@ -70,20 +70,20 @@ static int fetch_func(const bam1_t *b, void *data)
 {
 
 
-	const bam1_core_t* core =  &b->core;
-	uint32_t* cigar = bam1_cigar(b);
-	int32_t alignmentLength = bam_cigar2qlen(core,cigar);
+//	const bam1_core_t* core =  &b->core;
+//uint32_t* cigar = bam1_cigar(b);
+//	int32_t alignmentLength = bam_cigar2qlen(core,cigar);
 //	cout << core->tid << " " << core->pos <<  " " << alignmentLength << " a\n";
 
 	vector<bam1_t> *buf = (vector<bam1_t>*)data;
 	buf->push_back(*b);
 
-	uint32_t size = buf->size();
-	const bam1_t* bAF = &buf->at(0);
-	const bam1_core_t* coreAF =  &bAF->core;
-	uint32_t* cigarAF = bam1_cigar(bAF);
-	int32_t alignmentLengthAF = bam_cigar2qlen(coreAF,cigarAF);
-	//	cout << coreAF->tid << " " << coreAF->pos <<  " " << alignmentLengthAF << " b\n";
+//	uint32_t size = buf->size();
+//	const bam1_t* bAF = &buf->at(0);
+//	const bam1_core_t* coreAF =  &bAF->core;
+//	uint32_t* cigarAF = bam1_cigar(bAF);
+//	int32_t alignmentLengthAF = bam_cigar2qlen(coreAF,cigarAF);
+//	cout << coreAF->tid << " " << coreAF->pos <<  " " << alignmentLengthAF << " b\n";
 
 
     return 0;
@@ -102,6 +102,9 @@ int main(int argc, char *argv[]) {
 	vector<string> libraries;
 	vector<unsigned int> minInserts;
 	vector<unsigned int> maxInserts;
+	vector<unsigned int> meanInserts;
+	vector<unsigned int> edgeCutoff;
+	vector<unsigned int> dropCutoff;
 
 	unsigned int WINDOW = 1000;
 	uint64_t estimatedGenomeSize;
@@ -114,9 +117,12 @@ int main(int argc, char *argv[]) {
 	po::options_description desc(ss.str().c_str());
 	desc.add_options() ("help", "produce help message")
 			("libraries", po::value< vector < string > >(), "bam files, one for each different library (assumed ordered from the shortest to the longest)")
-			("min-insert",  po::value<vector< unsigned int> >(), "minimum allowed insert size, one for each library (assumed ordered from the shortest to the longest). Used in order to filter outliers. Insert size goeas from beginning of first read to end of second read")
-			("max-insert",  po::value<vector< unsigned int> >(), "maximum allowed insert size, one for each library (assumed ordered from the shortest to the longest). Used in order to filter outliers. Insert size goeas from beginning of first read to end of second read")
-			("window",  po::value<unsigned int>(), "window size for coverage drop computation")
+			("mean-insert",  po::value<vector< unsigned int> >(), "mean or expected distance of insert sizes, one for each library (assumed ordered from the shortest to the longest). Insert size goes from beginning of first read to end of second read")
+			("min-insert",  po::value<vector< unsigned int> >(), "minimum allowed insert size, one for each library (assumed ordered from the shortest to the longest). Used in order to filter outliers. Insert size goes from beginning of first read to end of second read")
+			("max-insert",  po::value<vector< unsigned int> >(), "maximum allowed insert size, one for each library (assumed ordered from the shortest to the longest). Used in order to filter outliers. Insert size goes from beginning of first read to end of second read")
+			("edge-cutoff",   po::value<vector< unsigned int> >(), "do not count coverage drops at beginning and end of contigs (specify one cutoff per library)")
+			("drop-cutoff",   po::value<vector< unsigned int> >(), "coverage drop threshold: when coverage is lower that this threshold count a feature (specify one cutoff per library)")
+			("window",  po::value<unsigned int>(), "window size for coverage drop computation [FOR FUTURE USE]")
 			("output",  po::value<string>(), "Header output file names (default FRC.txt and Features.txt)")
 			("genome-size", po::value<unsigned long int>(), "genome size (estimation)")
 			;
@@ -136,9 +142,9 @@ int main(int argc, char *argv[]) {
 	}
 
 
-	if (!vm.count("libraries")  or !vm.count("min-insert") or !vm.count("max-insert")) {
+	if (!vm.count("libraries")  or !vm.count("min-insert") or !vm.count("max-insert") or !vm.count("mean-insert") or !vm.count("edge-cutoff") or !vm.count("drop-cutoff")) {
 		DEFAULT_CHANNEL << "At least one library must be specified.\n"
-				"libraries, min-insert, and max-insert are all mandatory parameters.\n"
+				"libraries, min-insert, max-insert, mean-insert, edge-cutoff, and drop-cutoff are all mandatory parameters.\n"
 				"Run with --help for more details" << endl;
 		exit(0);
 	}
@@ -148,16 +154,19 @@ int main(int argc, char *argv[]) {
 	numLibraries = libraries.size();
 	minInserts = vm["min-insert"].as<vector<unsigned int> >();
 	maxInserts = vm["max-insert"].as<vector<unsigned int> >();
+	meanInserts = vm["mean-insert"].as<vector<unsigned int> >();
+	edgeCutoff = vm["edge-cutoff"].as<vector<unsigned int> >();
+	dropCutoff = vm["drop-cutoff"].as<vector<unsigned int> >();
 
-	cout << numLibraries << " " << minInserts.size() << " " << maxInserts.size() << "\n";
-
-	if(!(numLibraries == minInserts.size() && numLibraries == maxInserts.size()) ) {
+	if(!(numLibraries == minInserts.size() && numLibraries ==  maxInserts.size() && numLibraries == meanInserts.size()
+			&& numLibraries == edgeCutoff.size() && numLibraries == dropCutoff.size() ) ) {
 		DEFAULT_CHANNEL << "different number of libraries, min-inserts and max-inserts!!!" << endl;
 		exit(0);
 	}
 
 	for(unsigned int i = 0; i < libraries.size(); i++) {
-		cout << libraries.at(i) << "\t" << minInserts.at(i) <<  "\t" << maxInserts.at(i) << "\n";
+		cout << libraries.at(i) << "\t" << minInserts.at(i) <<  "\t" << maxInserts.at(i) << "\t" << meanInserts.at(i) <<
+				"\t" << edgeCutoff.at(i) << "\t" << dropCutoff.at(i) << "\n";
 	}
 
 	if (vm.count("window")) {
@@ -224,13 +233,33 @@ int main(int argc, char *argv[]) {
 	unsigned int contigSize;
 	//const bam1_t *b = bam_init1();
 
+
+	//OPEN THE OUTPUT
+	ofstream  outputFiles[numLibraries +1];
+	for(unsigned int lib = 0; lib < numLibraries; lib++) {
+		string fileNameLib = outputFile + "_";
+		stringstream ss;//create a stringstream
+		ss << lib;
+		fileNameLib +=  ss.str();
+		fileNameLib+= ".txt";
+
+	    outputFiles[lib].open(fileNameLib.c_str());;
+
+
+	}
+	string fileNameLib = outputFile + "_total.txt";
+    outputFiles[numLibraries].open(fileNameLib.c_str());
+
+
+
 	//computeLibraryStats(librariesBAM.at(0) , minInserts.at(0), maxInserts.at(0), estimatedGenomeSize);
 	for(unsigned int i=0; i< numSequences ; i++) {
 			beg = 0;
 			end = contigSize = head->target_len[i];
 			Contig *currentContig =  new Contig(contigSize, numLibraries);
 			for(unsigned int lib = 0; lib < numLibraries; lib++) {
-				currentContig->setLibraryLimits(minInserts.at(lib), maxInserts.at(lib), lib);
+				currentContig->setLibraryLimits(lib, minInserts.at(lib), maxInserts.at(lib), meanInserts.at(lib),
+						edgeCutoff.at(lib),  dropCutoff.at(lib));
 			}
 
 			bam_parse_region(librariesBAM.at(0)->header, head->target_name[i] , &ref, &beg, &end);
@@ -246,19 +275,21 @@ int main(int argc, char *argv[]) {
 //				cout << "\tnumber of alignments on contig " <<  head->target_name[i] <<  " with library " << lib << " is " << sizeBuffer << "\n";
 				for(unsigned int j = 0; j < sizeBuffer; j++ ) {
 					const bam1_t* b = &buffer.at(j);
-				//	const bam1_core_t* core =  &b->core;
-				//	int32_t alignmentLength = core->l_qseq; // bam_cigar2qlen(core,cigar);
-				//	cout << core->tid << " " << head->target_name[core->tid] << " " << core->pos <<  " " << alignmentLength << "\n";
 					currentContig->updateContig(b, lib);
 				}
 				buffer.clear();
+				currentContig->computeCoverageDrops(head->target_name[i], lib, outputFiles[lib]);
 			}
-
-
 			currentContig->computeContigStats();
 			currentContig->printStats();
 
-			currentContig->computeCoverageDrops();
+			currentContig->setUpTotal(); // set up values for total
+			currentContig->computeCoverageDrops(head->target_name[i], numLibraries, outputFiles[numLibraries]);
+
+			currentContig->printLibrariesThresholds();
+
+			//currentContig->computeCoverageDrops();
+
 
 			//currentContig->print();
 			delete currentContig;

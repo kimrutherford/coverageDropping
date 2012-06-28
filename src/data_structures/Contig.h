@@ -21,6 +21,9 @@ class Contig{
 	unsigned int libraries;
 	unsigned int *minInserts;
 	unsigned int *maxInserts;
+	unsigned int *meanInserts;
+	unsigned int *edgeCutoff;
+	unsigned int *dropCutoff;
 	unsigned int **spanCoverage;
 	unsigned int **readCoverage;
 
@@ -39,7 +42,9 @@ public:
 	Contig(unsigned int contigLength, unsigned int libraries);
 	~Contig();
 
-	void setLibraryLimits(unsigned int minInsert, unsigned int maxInsert, unsigned int library); // set min and max of liobrary library
+	void setUpTotal();
+	void setLibraryLimits(unsigned int library, unsigned int minInsert, unsigned int maxInsert, unsigned int meanInsert,
+			 unsigned int edgeCutoff,  unsigned int dropCutoff); // set min and max of liobrary library
 
 	void updateContig(const bam1_t* b, unsigned int library); // given an alignment and its library it updates the contig situation
 
@@ -47,8 +52,11 @@ public:
 
 	void computeCoverageDrops();
 
+	void computeCoverageDrops(string ctgID, unsigned int lib, ofstream &output);
+
 	void print();
 	void printStats();
+	void printLibrariesThresholds();
 
 };
 
