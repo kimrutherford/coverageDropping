@@ -260,24 +260,24 @@ int main(int argc, char *argv[]) {
 			beg = 0;
 			end = contigSize = head->target_len[i];
 			Contig *currentContig =  new Contig(contigSize, numLibraries);
-			cout << "\currentContig created \n";
+			cout << "\tcurrentContig created \n";
 			for(unsigned int lib = 0; lib < numLibraries; lib++) {
 				currentContig->setLibraryLimits(lib, minInserts.at(lib), maxInserts.at(lib), meanInserts.at(lib),
 						edgeCutoff.at(lib),  dropCutoff.at(lib));
 			}
-			cout << "\set library limits done \n";
+			cout << "\tset library limits done \n";
 
 			bam_parse_region(librariesBAM.at(0)->header, head->target_name[i] , &ref, &beg, &end);
 			if (ref < 0) {
 				fprintf(stderr, "Invalid region %s\n", head->target_name[i]);
 				return 1;
 			}
-			cout << "bam_parse_region done\n";
+			cout << "\tbam_parse_region done\n";
 
 			for(unsigned int lib = 0; lib < numLibraries; lib++) {
-				cout << "library " <<lib << "\n";
+				cout << "\t\tlibrary " <<lib << "\n";
 				bam_fetch(librariesBAM.at(lib)->x.bam, librariesBAMindex.at(lib) , ref, beg, end, &buffer, fetch_func);
-				cout << "bam_fetch  " <<lib << " done \n";
+				cout << "\t\tbam_fetch  " <<lib << " done \n";
 				unsigned int sizeBuffer = buffer.size();
 //				cout << "\tnumber of alignments on contig " <<  head->target_name[i] <<  " with library " << lib << " is " << sizeBuffer << "\n";
 				for(unsigned int j = 0; j < sizeBuffer; j++ ) {
