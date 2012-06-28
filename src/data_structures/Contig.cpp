@@ -210,6 +210,8 @@ void  Contig::computeCoverageDrops(string ctgID, unsigned int lib, ofstream &out
 	unsigned int startCov = this->edgeCutoff[lib];
 	unsigned int endCov	  = this->contigLength - this->edgeCutoff[lib];
 
+	cout << startCov << " " << endCov << " " << this->contigLength << " " << lib << "\n";
+
 	if(this->contigLength > this->meanInserts[lib] and endCov > startCov) { // contig MUST be at least long as the expected insert size otherwise "succhia"
 		for(unsigned int pos = startCov; pos < endCov; pos++) {
 			if(this->spanCoverage[lib][pos] <= this->dropCutoff[lib]) {
