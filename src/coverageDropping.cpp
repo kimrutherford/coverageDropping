@@ -281,8 +281,8 @@ int main(int argc, char *argv[]) {
 
 			currentContig->setUpTotal(); // set up values for total
 
-			cout << head->target_name[i] << " ";
-			currentContig->printLibrariesThresholds();
+			//cout << head->target_name[i] << " ";
+			//currentContig->printLibrariesThresholds();
 			currentContig->computeCoverageDrops(head->target_name[i], numLibraries, outputFiles[numLibraries]);
 
 
