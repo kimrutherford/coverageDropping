@@ -200,7 +200,7 @@ int main(int argc, char *argv[]) {
 	if (estimatedGenomeSize == 0) {
 		estimatedGenomeSize = genomeLength; // if user has not provided genome size, approaximated it with assembly size
 	}
-	samclose(firstBAMFile);
+//	samclose(firstBAMFile);
 
 	cout << "number of libraries " << numLibraries << endl;
 	cout << "total number of contigs " << numSequences << endl;
