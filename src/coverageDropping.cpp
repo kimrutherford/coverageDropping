@@ -213,7 +213,6 @@ int main(int argc, char *argv[]) {
 
 	for(unsigned int i = 0; i< libraries.size() ; i++) {
 		string path2bam = libraries.at(i);
-		cout << "now opening " << path2bam << " ... ";
 		samfile_t *BAMFile;
 		BAMFile = open_alignment_file(path2bam); // Open the first file in order to memorize contigs
 		EXIT_IF_NULL(BAMFile);
@@ -222,7 +221,6 @@ int main(int argc, char *argv[]) {
 		EXIT_IF_NULL(bamIndex);
 		librariesBAM.push_back(BAMFile);
 		librariesBAMindex.push_back(bamIndex);
-		cout << "done\n";
 	}
 
 
@@ -235,7 +233,6 @@ int main(int argc, char *argv[]) {
 
 
 	//OPEN THE OUTPUT
-	cout << "opening output files ...";
 	ofstream  outputFiles[numLibraries +1];
 	for(unsigned int lib = 0; lib < numLibraries; lib++) {
 		string fileNameLib = outputFile + "_";
@@ -250,34 +247,26 @@ int main(int argc, char *argv[]) {
 	}
 	string fileNameLib = outputFile + "_total.txt";
     outputFiles[numLibraries].open(fileNameLib.c_str());
-    cout << "done\n";
 
 
 	//computeLibraryStats(librariesBAM.at(0) , minInserts.at(0), maxInserts.at(0), estimatedGenomeSize);
-	cout << "parsing sequencing ....\n";
     for(unsigned int i=0; i< numSequences ; i++) {
-    		cout << "\tprocessing " << head->target_name[i] << " index " << i << "\n";
 			beg = 0;
 			end = contigSize = head->target_len[i];
 			Contig *currentContig =  new Contig(contigSize, numLibraries);
-			cout << "\tcurrentContig created \n";
 			for(unsigned int lib = 0; lib < numLibraries; lib++) {
 				currentContig->setLibraryLimits(lib, minInserts.at(lib), maxInserts.at(lib), meanInserts.at(lib),
 						edgeCutoff.at(lib),  dropCutoff.at(lib));
 			}
-			cout << "\tset library limits done \n";
 
 			bam_parse_region(librariesBAM.at(0)->header, head->target_name[i] , &ref, &beg, &end);
 			if (ref < 0) {
 				fprintf(stderr, "Invalid region %s\n", head->target_name[i]);
 				return 1;
 			}
-			cout << "\tbam_parse_region done\n";
 
 			for(unsigned int lib = 0; lib < numLibraries; lib++) {
-				cout << "\t\tlibrary " <<lib << "\n";
 				bam_fetch(librariesBAM.at(lib)->x.bam, librariesBAMindex.at(lib) , ref, beg, end, &buffer, fetch_func);
-				cout << "\t\tbam_fetch  " <<lib << " done \n";
 				unsigned int sizeBuffer = buffer.size();
 //				cout << "\tnumber of alignments on contig " <<  head->target_name[i] <<  " with library " << lib << " is " << sizeBuffer << "\n";
 				for(unsigned int j = 0; j < sizeBuffer; j++ ) {
@@ -288,20 +277,18 @@ int main(int argc, char *argv[]) {
 				currentContig->computeCoverageDrops(head->target_name[i], lib, outputFiles[lib]);
 			}
 			currentContig->computeContigStats();
-			currentContig->printStats();
+			//currentContig->printStats();
 
 			currentContig->setUpTotal(); // set up values for total
 			currentContig->computeCoverageDrops(head->target_name[i], numLibraries, outputFiles[numLibraries]);
 
-			currentContig->printLibrariesThresholds();
+			//currentContig->printLibrariesThresholds();
 
 			//currentContig->computeCoverageDrops();
 
 
 			//currentContig->print();
 			delete currentContig;
-
-		    cout << " done\n";
 
 		}
 
