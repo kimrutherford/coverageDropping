@@ -256,7 +256,7 @@ int main(int argc, char *argv[]) {
 	//computeLibraryStats(librariesBAM.at(0) , minInserts.at(0), maxInserts.at(0), estimatedGenomeSize);
 	cout << "parsing sequencing ....\n";
     for(unsigned int i=0; i< numSequences ; i++) {
-    		cout << "\tprocessing " << head->target_name[i] << "...";
+    		cout << "\tprocessing " << head->target_name[i] << " index " << i << "\n";
 			beg = 0;
 			end = contigSize = head->target_len[i];
 			Contig *currentContig =  new Contig(contigSize, numLibraries);
