@@ -276,13 +276,18 @@ int main(int argc, char *argv[]) {
 				buffer.clear();
 				currentContig->computeCoverageDrops(head->target_name[i], lib, outputFiles[lib]);
 			}
-			currentContig->computeContigStats();
+
 			//currentContig->printStats();
 
 			currentContig->setUpTotal(); // set up values for total
+
+			cout << head->target_name[i] << " ";
+			currentContig->printLibrariesThresholds();
 			currentContig->computeCoverageDrops(head->target_name[i], numLibraries, outputFiles[numLibraries]);
 
-			//currentContig->printLibrariesThresholds();
+
+			currentContig->computeContigStats();
+
 
 			//currentContig->computeCoverageDrops();
 
