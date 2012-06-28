@@ -42,6 +42,8 @@ public:
 	Contig(unsigned int contigLength, unsigned int libraries);
 	~Contig();
 
+
+
 	void setUpTotal();
 	void setLibraryLimits(unsigned int library, unsigned int minInsert, unsigned int maxInsert, unsigned int meanInsert,
 			 unsigned int edgeCutoff,  unsigned int dropCutoff); // set min and max of liobrary library
