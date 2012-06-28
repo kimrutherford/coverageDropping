@@ -235,6 +235,7 @@ int main(int argc, char *argv[]) {
 
 
 	//OPEN THE OUTPUT
+	cout << "opening output files ...";
 	ofstream  outputFiles[numLibraries +1];
 	for(unsigned int lib = 0; lib < numLibraries; lib++) {
 		string fileNameLib = outputFile + "_";
@@ -249,11 +250,13 @@ int main(int argc, char *argv[]) {
 	}
 	string fileNameLib = outputFile + "_total.txt";
     outputFiles[numLibraries].open(fileNameLib.c_str());
-
+    cout << "done\n";
 
 
 	//computeLibraryStats(librariesBAM.at(0) , minInserts.at(0), maxInserts.at(0), estimatedGenomeSize);
-	for(unsigned int i=0; i< numSequences ; i++) {
+	cout << "parsing sequencing ....\n";
+    for(unsigned int i=0; i< numSequences ; i++) {
+    		cout << "\tprocessing " << head->target_name[i] << "...";
 			beg = 0;
 			end = contigSize = head->target_len[i];
 			Contig *currentContig =  new Contig(contigSize, numLibraries);
@@ -293,6 +296,9 @@ int main(int argc, char *argv[]) {
 
 			//currentContig->print();
 			delete currentContig;
+
+		    cout << " done\n";
+
 		}
 
 
