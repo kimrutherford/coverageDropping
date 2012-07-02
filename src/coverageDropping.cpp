@@ -106,6 +106,8 @@ int main(int argc, char *argv[]) {
 	vector<unsigned int> edgeCutoff;
 	vector<unsigned int> dropCutoff;
 
+	unsigned int minCtgLgth = 0;
+
 	unsigned int WINDOW = 1000;
 	uint64_t estimatedGenomeSize;
 
@@ -122,6 +124,7 @@ int main(int argc, char *argv[]) {
 			("max-insert",  po::value<vector< unsigned int> >(), "maximum allowed insert size, one for each library (assumed ordered from the shortest to the longest). Used in order to filter outliers. Insert size goes from beginning of first read to end of second read")
 			("edge-cutoff",   po::value<vector< unsigned int> >(), "do not count coverage drops at beginning and end of contigs (specify one cutoff per library)")
 			("drop-cutoff",   po::value<vector< unsigned int> >(), "coverage drop threshold: when coverage is lower that this threshold count a feature (specify one cutoff per library)")
+			("min-ctg-lgth",  po::value<unsigned int>(), "compute coverage drop stats only on contigs longer than this parameter")
 			("window",  po::value<unsigned int>(), "window size for coverage drop computation [FOR FUTURE USE]")
 			("output",  po::value<string>(), "Header output file names (default FRC.txt and Features.txt)")
 			("genome-size", po::value<unsigned long int>(), "genome size (estimation)")
@@ -168,6 +171,12 @@ int main(int argc, char *argv[]) {
 		cout << libraries.at(i) << "\t" << minInserts.at(i) <<  "\t" << maxInserts.at(i) << "\t" << meanInserts.at(i) <<
 				"\t" << edgeCutoff.at(i) << "\t" << dropCutoff.at(i) << "\n";
 	}
+
+
+	if (vm.count("min-ctg-lgth")) {
+		minCtgLgth = vm["min-ctg-lgth"].as<unsigned int>();
+	}
+
 
 	if (vm.count("window")) {
 		WINDOW = vm["window"].as<unsigned int>();
@@ -241,18 +250,19 @@ int main(int argc, char *argv[]) {
 		fileNameLib +=  ss.str();
 		fileNameLib+= ".txt";
 
-	    outputFiles[lib].open(fileNameLib.c_str());;
+		outputFiles[lib].open(fileNameLib.c_str());;
 
 
 	}
 	string fileNameLib = outputFile + "_total.txt";
-    outputFiles[numLibraries].open(fileNameLib.c_str());
+	outputFiles[numLibraries].open(fileNameLib.c_str());
 
 
 	//computeLibraryStats(librariesBAM.at(0) , minInserts.at(0), maxInserts.at(0), estimatedGenomeSize);
-    for(unsigned int i=0; i< numSequences ; i++) {
-			beg = 0;
-			end = contigSize = head->target_len[i];
+	for(unsigned int i=0; i< numSequences ; i++) {
+		beg = 0;
+		end = contigSize = head->target_len[i];
+		if(contigSize >= minCtgLgth) {
 			Contig *currentContig =  new Contig(contigSize, numLibraries);
 			for(unsigned int lib = 0; lib < numLibraries; lib++) {
 				currentContig->setLibraryLimits(lib, minInserts.at(lib), maxInserts.at(lib), meanInserts.at(lib),
@@ -268,7 +278,7 @@ int main(int argc, char *argv[]) {
 			for(unsigned int lib = 0; lib < numLibraries; lib++) {
 				bam_fetch(librariesBAM.at(lib)->x.bam, librariesBAMindex.at(lib) , ref, beg, end, &buffer, fetch_func);
 				unsigned int sizeBuffer = buffer.size();
-//				cout << "\tnumber of alignments on contig " <<  head->target_name[i] <<  " with library " << lib << " is " << sizeBuffer << "\n";
+				//				cout << "\tnumber of alignments on contig " <<  head->target_name[i] <<  " with library " << lib << " is " << sizeBuffer << "\n";
 				for(unsigned int j = 0; j < sizeBuffer; j++ ) {
 					const bam1_t* b = &buffer.at(j);
 					currentContig->updateContig(b, lib);
@@ -296,6 +306,8 @@ int main(int argc, char *argv[]) {
 			delete currentContig;
 
 		}
+	}
+
 
 
 }

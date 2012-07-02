@@ -207,6 +207,13 @@ void  Contig::computeCoverageDrops(string ctgID, unsigned int lib, ofstream &out
 	unsigned int dropStart = 0;
 	unsigned int dropEnd   = 0;
 
+	float readCov           = 0;
+	unsigned int readLength = 0;
+	for( int pos = 0; pos < this->contigLength; pos++) {
+		readLength += this->readCoverage[lib][pos];
+	}
+	readCov = (float)readLength/(float)this->contigLength;
+
 	int startCov = this->edgeCutoff[lib];
 	int endCov	  = this->contigLength - this->edgeCutoff[lib];
 
@@ -239,12 +246,12 @@ void  Contig::computeCoverageDrops(string ctgID, unsigned int lib, ofstream &out
 		// store number of drops
 		if(drops > 0) {
 			meanDropLength = (float)dropsLength/drops;
-			output << ctgID  << "\t" << this->contigLength  << "\t" << drops << "\t" << meanDropLength << "\n";
+			output << ctgID  << "\t" << this->contigLength  << "\t" << drops << "\t" << meanDropLength << "\t" << readCov << "\n";
 		} else {
-			output << ctgID << "\t" << this->contigLength << "\t" << 0 << "\t" << 0 << "\n";
+			output << ctgID << "\t" << this->contigLength << "\t" << 0 << "\t" << 0 << "\t" << readCov << "\n";
 		}
 	} else {
-		output << ctgID  << "\t" << this->contigLength  << "\t" << -1 << "\t" << 0 << "\n";
+		output << ctgID  << "\t" << this->contigLength  << "\t" << -1 << "\t" << 0 << "\t" << readCov << "\n";
 	}
 
 
